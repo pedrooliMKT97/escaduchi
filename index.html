@@ -182,10 +182,15 @@
             padding: 8px 16px;
             font-size: 14px;
             cursor: pointer;
+            transition: background-color 0.3s;
         }
 
         .copy-button:hover {
             background-color: #45a049;
+        }
+
+        .copy-button.copied {
+            background-color: #2e7d32;
         }
 
         .overlay {
@@ -199,31 +204,66 @@
             z-index: 999;
         }
 
-        @media (max-width: 480px) {
-            h1 {
-                font-size: 20px;
-            }
+        /* Estilos do Pop-up de Parabéns */
+        .congrats-popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #e91e63;
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 300px;
+            text-align: center;
+            z-index: 1001;
+        }
 
-            .check-item {
-                padding: 12px;
-            }
+        .congrats-popup button {
+            background-color: white;
+            color: #e91e63;
+            border: none;
+            border-radius: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: background-color 0.3s, color 0.3s;
+        }
 
-            .sub-checkbox {
-                width: 100%;
-            }
+        .congrats-popup button:hover {
+            background-color: #f8f8f8;
+            color: #c2185b;
+        }
+
+        /* Estilo do campo de texto */
+        .name-input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+
+        .name-input:focus {
+            border-color: #e91e63;
+            outline: none;
         }
     </style>
 </head>
 <body>
-    <h1>Tabelinha personalizada da Bárbara</h1>
+    <h1>Tabela Uniforme</h1>
     
     <div class="checkbox-container">
-        <!-- Nome -->
-        <label class="check-item">
-            <input type="checkbox" class="checkbox-input" id="nome-checkbox">
-            <span class="custom-checkbox"></span>
-            <span class="check-label">Nome</span>
-        </label>
+        <!-- Campo de texto para o nome -->
+        <div class="check-item">
+            <label for="name-input" class="check-label">Nome:</label>
+            <input type="text" id="name-input" class="name-input" placeholder="Digite o nome">
+        </div>
 
         <!-- Tamanho -->
         <label class="check-item">
@@ -333,9 +373,9 @@
 
     <button id="resetButton">Tudo certo? Vamos conferir novamente</button>
 
-    <footer>Lembrar de conferir!</footer>
+    <footer>Bom trabalho</footer>
 
-    <!-- Pop-up -->
+    <!-- Pop-up de Resumo -->
     <div class="overlay" id="overlay"></div>
     <div class="popup" id="popup">
         <div class="popup-content">
@@ -343,6 +383,12 @@
             <div class="popup-text" id="popupText"></div>
             <button class="copy-button" id="copyButton">Copiar</button>
         </div>
+    </div>
+
+    <!-- Pop-up de Parabéns -->
+    <div class="congrats-popup" id="congratsPopup">
+        <p>Parabéns!</p>
+        <button id="restartButton">Parabéns!</button>
     </div>
 
     <script>
@@ -365,8 +411,9 @@
         // Gerar resumo
         function generateSummary() {
             const summary = [];
-            if (document.getElementById('nome-checkbox').checked) {
-                summary.push("✅ Nome");
+            const name = document.getElementById('name-input').value.trim();
+            if (name) {
+                summary.push(`✅ Nome: ${name}`);
             }
 
             const tamanho = Array.from(document.querySelectorAll('#tamanho-options input:checked'))
@@ -396,7 +443,7 @@
             return summary.join('\n');
         }
 
-        // Mostrar pop-up
+        // Mostrar pop-up de resumo
         document.getElementById('resetButton').addEventListener('click', () => {
             const summary = generateSummary();
             document.getElementById('popupText').textContent = summary;
@@ -404,18 +451,59 @@
             document.getElementById('overlay').style.display = 'block';
         });
 
-        // Fechar pop-up
+        // Fechar pop-up de resumo e reiniciar a página
         document.getElementById('closePopup').addEventListener('click', () => {
-            document.getElementById('popup').style.display = 'none';
-            document.getElementById('overlay').style.display = 'none';
+            location.reload(); // Reinicia a página
         });
 
-        // Copiar texto
-        document.getElementById('copyButton').addEventListener('click', () => {
+        // Função para copiar texto e mostrar pop-up de Parabéns
+        document.getElementById('copyButton').addEventListener('click', async () => {
             const text = document.getElementById('popupText').textContent;
-            navigator.clipboard.writeText(text).then(() => {
-                alert('Texto copiado com sucesso!');
-            });
+            const copyBtn = document.getElementById('copyButton');
+
+            try {
+                // Tenta usar a API moderna
+                await navigator.clipboard.writeText(text);
+
+                // Feedback visual
+                copyBtn.textContent = "✓ Copiado!";
+                copyBtn.classList.add('copied');
+
+                // Mostra o pop-up de Parabéns
+                document.getElementById('congratsPopup').style.display = 'block';
+
+                // Retorna ao normal após 2 segundos
+                setTimeout(() => {
+                    copyBtn.textContent = "Copiar";
+                    copyBtn.classList.remove('copied');
+                }, 2000);
+
+            } catch (err) {
+                // Fallback para métodos antigos
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+
+                // Feedback visual alternativo
+                copyBtn.textContent = "Copiado!";
+                setTimeout(() => {
+                    copyBtn.textContent = "Copiar";
+                }, 2000);
+            }
+        });
+
+        // Reinicia a página ao clicar em "Parabéns!"
+        document.getElementById('restartButton').addEventListener('click', () => {
+            location.reload();
+        });
+
+        // Fecha o pop-up de Parabéns ao clicar no overlay
+        document.getElementById('overlay').addEventListener('click', () => {
+            document.getElementById('congratsPopup').style.display = 'none';
+            document.getElementById('overlay').style.display = 'none';
         });
     </script>
 </body>
